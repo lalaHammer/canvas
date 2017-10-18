@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<title>使用canvas制作小圆点计时器</title>
+		<script src="digit.js" type="text/javascript" charset="utf-8"></script>
+	</head>
+
+	<body style="height: 100%;">
+		<canvas id="ca1" style="height: 512px;display: block;">浏览器版本不支持canvas</canvas>
+
+		<script type="text/javascript">
+			var WINDOW_WIDTH = 1024;
+			var WINDOW_HEIGHT = 576;
+			//使用变量表示数据时能够在后期修改浏览器自适应时更加方便
+			var MARGIN_TOP = 100; //数据的margin-top
+			var MARGIN_LEFT = 100; //数据的margin-left
+			var radius = 7; //半径
+			//定义存储小球的数组
+			var balls = [];
+			var ballColors = ['skeyblue', '#f60', '#3f3', '#66f', '#f36', '#ffc', '#0f0', '#999', '#09f', '#f03']; //存储小球的颜色
+
+			var curTime = 0; //定义前一秒的时间
+			window.onload = function() {
+				var canvas = document.getElementById('ca1');
+				var ctx = canvas.getContext('2d');
+				
+				WINDOW_WIDTH = document.body.clientWidth;
+				WINDOW_HEIGHT = document.body.clientHeight;
+				canvas.width = WINDOW_WIDTH;
+				canvas.height = WINDOW_HEIGHT;
+				
+				MARGIN_TOP=Math.floor(WINDOW_HEIGHT/5);
+				MARGIN_LEFT=Math.floor(WINDOW_WIDTH/10);
+				radius=Math.floor(WINDOW_WIDTH*4/5/108)-1;
+				
+				curTime = getTime();//取得前一秒的时间
+				setInterval(function() {
+					draw(ctx);
+					update();
+				}, 50);
+
+			}
+
+			//获取时间
+			function getTime() {
+				var time = new Date();
+				return {
+					'hour': time.getHours(),
+					'minute': time.getMinutes(),
+					'sec': time.getSeconds()
+				};
+			}
+
+			//定义当时间更新时,绘制彩球
+			function update() {
+				var nextTime = getTime();
+				//下一秒时间
+				var nextHour = nextTime.hour;
+				var nextMinu = nextTime.minute;
+				var nextSec = nextTime.sec;
+				//前一秒时间
+				var hour = curTime.hour;
+				var minute = curTime.minute;
+				var seconds = curTime.sec;
+
+				if (nextSec != seconds) {
+					//小时
+					if (parseInt(hour / 10) != parseInt(nextHour / 10)) {
+						addBall(parseInt(hour / 10), MARGIN_LEFT, MARGIN_TOP);
+					}
+					if (parseInt(hour % 10) != parseInt(nextHour % 10)) {
+						addBall(hour % 10, MARGIN_LEFT + 15 * (radius + 1), MARGIN_TOP);
+					}
+					//分钟
+					if (parseInt(minute / 10) != parseInt(nextMinu / 10)) {
+						addBall(parseInt(minute / 10), MARGIN_LEFT + 42 * (radius + 1), MARGIN_TOP);
+					}
+					if (parseInt(minute % 10) != parseInt(nextMinu % 10)) {
+						addBall(minute % 10, MARGIN_LEFT + 75 * (radius + 1), MARGIN_TOP);
+					}
+					//秒
+					if (parseInt(seconds / 10) != parseInt(nextSec / 10)) {
+						addBall(parseInt(seconds / 10), MARGIN_LEFT + 84 * (radius + 1), MARGIN_TOP);
+					}
+					if (parseInt(seconds % 10) != parseInt(nextSec % 10)) {
+						addBall(seconds % 10, MARGIN_LEFT + 99 * (radius + 1), MARGIN_TOP);
+					}
+					curTime = nextTime;//把下一秒的时间赋值给前一秒
+				}
+				runBall();
+
+			}
+
+			//定义彩色小球的物理运动
+			function runBall() {
+				for (var i = 0; i < balls.length; i++) {
+					balls[i].x += balls[i].vx;
+
+					if (balls[i].y >= WINDOW_HEIGHT - radius) { //当小球到下部边缘时进行碰撞检测
+						balls[i].y = WINDOW_HEIGHT - radius;
+						balls[i].vy = -balls[i].vy * 0.6; //弹起时速度损耗
+					}
+					balls[i].y += balls[i].vy;
+					balls[i].vy += balls[i].g;
+				}
+				//如果小球不在界面上则删除
+				var cnt = 0; //定义一个计数器,记录还在页面中的小球
+				for (var i = 0; i < balls.length; i++)
+					if (balls[i].x + radius > 0 && balls[i].x - radius < WINDOW_WIDTH) {
+						balls[cnt++] = balls[i];
+					}
+				while (balls.length > Math.min(300, cnt)) {
+					balls.pop();
+				}
+
+			}
+
+			//添加彩色小球到数组中
+			function addBall(num, x, y) {
+				for (var i = 0; i < digit[num].length; i++) {
+					for (var j = 0; j < digit[num][i].length; j++) {
+						if (digit[num][i][j] == 1) {
+							var aBall = {
+								x: x + j * 2 * (radius + 1) + (radius + 1),
+								y: y + i * 2 * (radius + 1) + (radius + 1),
+								vy: -10, //定义小球的垂直速度
+								vx: Math.pow(-1, Math.floor(Math.random() * 10)) * 5, //定义小球的水平速度
+								g: 3 + Math.random() * 2,
+								color: ballColors[Math.floor(Math.random() * ballColors.length)]
+							};
+							balls.push(aBall); //把符合的小球加入数组
+						}
+					}
+				}
+			}
+
+			//定义绘制函数
+			function draw(ctx) {
+				var hour = curTime.hour;
+				var minute = curTime.minute;
+				var seconds = curTime.sec;
+
+				ctx.clearRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+				//绘制小时
+				drawDigit(ctx, parseInt(hour / 10), MARGIN_LEFT, MARGIN_TOP);
+				drawDigit(ctx, parseInt(hour % 10), MARGIN_LEFT + 15 * (radius + 1), MARGIN_TOP);
+				//绘制冒号:
+				drawDigit(ctx, 10, MARGIN_LEFT + 32 * (radius + 1), MARGIN_TOP);
+				//绘制分钟
+				drawDigit(ctx, parseInt(minute / 10), MARGIN_LEFT + 42 * (radius + 1), MARGIN_TOP);
+				drawDigit(ctx, parseInt(minute % 10), MARGIN_LEFT + 57 * (radius + 1), MARGIN_TOP);
+				//:
+				drawDigit(ctx, 10, MARGIN_LEFT + 74 * (radius + 1), MARGIN_TOP);
+				//绘制秒
+				drawDigit(ctx, parseInt(seconds / 10), MARGIN_LEFT + 84 * (radius + 1), MARGIN_TOP);
+				drawDigit(ctx, parseInt(seconds % 10), MARGIN_LEFT + 99 * (radius + 1), MARGIN_TOP);
+
+				//绘制彩球
+				for (var i = 0; i < balls.length; i++) {
+					ctx.fillStyle = balls[i].color;
+					ctx.beginPath();
+					ctx.arc(balls[i].x, balls[i].y, radius, 0, 2 * Math.PI);
+					ctx.closePath();
+					ctx.fill();
+				}
+			}
+
+			//定义绘制小圆点
+			function drawDigit(ctx, num, x, y) {
+				ctx.fillStyle = 'rgb(0,102,153)';
+				for (var i = 0; i < digit[num].length; i++) {
+					for (var j = 0; j < digit[num][i].length; j++) {
+						if (digit[num][i][j] == 1) {
+							ctx.beginPath();
+							ctx.arc(x + j * 2 * (radius + 1) + (radius + 1), y + i * 2 * (radius + 1) + (radius + 1), radius, 0, 2 * Math.PI);
+							ctx.closePath();
+							ctx.fill();
+						}
+					}
+				}
+			}
+		</script>
+
+	</body>
+</html>
